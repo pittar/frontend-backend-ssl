@@ -1,0 +1,288 @@
+apiVersion: v1
+kind: Template
+labels:
+  template: frontend-spring
+metadata:
+  annotations:
+    description: Template for deploying Apache and Postgres on RHEL
+    iconClass: icon-postgres-database
+    tags: quickstart,oracle
+  name: spring-ssl
+objects:
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    name: webserver31-tomcat7-openshift
+  spec:
+    tags:
+    - from:
+        kind: DockerImage
+        name: registry.access.redhat.com/jboss-webserver-3/webserver31-tomcat7-openshift
+      name: latest
+      importPolicy:
+        scheduled: true
+
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      description: Exposes and load balances the application pods
+    name: ${NAME}-frontend-web
+  spec:
+    ports:
+    - name: web
+      port: 8080
+      targetPort: 8080
+    selector:
+      name: ${NAME}-frontend
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      description: Exposes and load balances the application pods
+    name: ${NAME}-frontend-ssl
+  spec:
+    ports:
+    - name: ssl
+      port: 8443
+      targetPort: 8443
+    selector:
+      name: ${NAME}-frontend
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: ${NAME}-frontend-ssl
+  spec:
+    host: ${APPLICATION_DOMAIN}
+    path: /app/scr/icps/api
+    port:
+      targetPort: 8443
+    to:
+      kind: Service
+      name: ${NAME}-frontend-ssl
+    tls:
+      termination: reencrypt
+      insecureEdgeTerminationPolicy: None
+      destinationCACertificate: |-
+        -----BEGIN CERTIFICATE-----
+        MIIDaDCCAlACCQC07fAVNJUxZTANBgkqhkiG9w0BAQsFADCBiDELMAkGA1UEBhMC
+        Q0ExCzAJBgNVBAgMAk9OMRAwDgYDVQQHDAdUb3JvbnRvMRQwEgYDVQQKDAtSZWQg
+        SGF0IEluYzELMAkGA1UECwwCU1MxFDASBgNVBAMMC1JlZCBIYXQgSW5jMSEwHwYJ
+        KoZIhvcNAQkBFhJzem9iYWlyQHJlZGhhdC5jb20wHhcNMTgwNTIyMTQyNDM4WhcN
+        MTgwNjIxMTQyNDM4WjBjMQswCQYDVQQGEwJDQTELMAkGA1UECAwCT04xEDAOBgNV
+        BAcMB1Rvcm9udG8xCzAJBgNVBAoMAlNTMSgwJgYDVQQDDB8qLmU4Y2EuZW5naW50
+        Lm9wZW5zaGlmdGFwcHMuY29tMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKC
+        AQEA8Tt7yM/tt42BibDuvepStg1QdC0dzvUBg6Yb8G42DLEI2Wx1JITt0z88xrzj
+        mu4A7bhWjcAg7ubaFDfi5RzGIapBURYE7SCymXraUdcMVaDJbxNLV3UUuyO+V6qN
+        dD9pe6dQYCmzvyffMCtVcTPUHeSLFD/51S69WFugt19tLFVeK/7QOcwsJ1sW+QEL
+        u6ls+Ih5ViHc7JHjXFrQanCSjaFXXrwDBJ8fLTHJuzegbD30/IpoqKUjqVGHxn6L
+        uJw28ZutcE9BucSDf7YPKlfLIH9HOLokJGRfJYYzgP+BhjromHHi2dLbmCwfhLXD
+        NlhfIRP5HS2zoDPCiqEEH9rgPwIDAQABMA0GCSqGSIb3DQEBCwUAA4IBAQCwbubQ
+        R0wZH3HovymnFu5gqN9f/SjFQXF025ZRhH433ouyHFOCRqrg6a64NyIQ5o8CKVyd
+        7JTSUqM8BsG2y/bIzeIIsTqesxYqu3oLTDf7LDrozC2VBwD3ga32oow1KKCqER0R
+        7Ju4+YBLq9XgoNJDcUd1IgQEb6JIFqbhc9nIFQUnEZHwmUKBQbVcxw71C4Ufbett
+        PzyExKT6m/fxYg71V7eb/nyKprwLSvZbbEEYqZd7RV2sRyfYuIiAQdyhr97oGk15
+        TJostDfTO4J9FN6Qvm9eHz4+kF+3TVMnZS75Hr4XVWsDXm6wR1vS+DFHKL+TH4AQ
+        GO0WaexSWrfC4Jfb
+        -----END CERTIFICATE-----
+        -----BEGIN PRIVATE KEY-----
+        MIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQDxO3vIz+23jYGJ
+        sO696lK2DVB0LR3O9QGDphvwbjYMsQjZbHUkhO3TPzzGvOOa7gDtuFaNwCDu5toU
+        N+LlHMYhqkFRFgTtILKZetpR1wxVoMlvE0tXdRS7I75Xqo10P2l7p1BgKbO/J98w
+        K1VxM9Qd5IsUP/nVLr1YW6C3X20sVV4r/tA5zCwnWxb5AQu7qWz4iHlWIdzskeNc
+        WtBqcJKNoVdevAMEnx8tMcm7N6BsPfT8imiopSOpUYfGfou4nDbxm61wT0G5xIN/
+        tg8qV8sgf0c4uiQkZF8lhjOA/4GGOuiYceLZ0tuYLB+EtcM2WF8hE/kdLbOgM8KK
+        oQQf2uA/AgMBAAECggEAZaWZ6CjtUt22iq1aO/4jsgB0OS/VkqIcbDuvJCVccwaZ
+        4vvXdHbqu4u28UsgYOUO0RxOpFYjymbN150g50ezmPXjpeYwVzbi6tcgbUG/OcmR
+        d1Na+NQl0yEhkFEWX7hkmy0KKisISXDkk6h+zT94jswBapv2isSyFiwt0XbNStMw
+        c6oCQ/vQaxv++6z8AJAH+4atpoXsDpUn3NEFcGqG2eRjqc6jI2zS9MSRSknaDsCG
+        AnV8dS5wg1JVXa2aWG3xS3rC6WhfB0ZKgIETN2cZ/1gPb1SORg66OuLoK2LCRy6x
+        xv4deJPskfwDhfwfpqy3DSU1OAUOVYWBvIKOh9jX4QKBgQD8AIx6ImW+zXWCubrU
+        izPA2sDei5zB1YELwIiIUq6s4F/DZRLUHuCjROQmYy1fzg5+x0loxFVMWjcaZPa9
+        nl4IW4JiWoSM1U+Jym8Iv/SC3Y0PgbMPxX1ZsqiHYqxy4jvldqavd1/AXkPJ0GoJ
+        3zG0IMNpmgfdv6l8g+dMFqL8cQKBgQD1DzIX9jYr4CVSK9zOQ0ATVhJ/epX9sHD7
+        CkTlxIdco5NiLFkkys4LnEqBEEbzh5HXNB5K0VPD5i7haILmn0m1IcPV+Lerq/Xr
+        HleJwMsnDRNl7uQF22JjWfSNDQbUlyNx6k/WEoRppQxtwGM35pi96frmQKrx296O
+        k19COZi/rwKBgCUSS5gYAVG9VeEiQ3rK85UWWTMj5K6bIv3AmBU93JZv94Z+EvQD
+        itZZ5xpCksU6QeWimYkBAO9Xgi2u1qF0b67ZD2g6mq9BHg9OKWFnI6gwwXSbhuT2
+        D4engaVQ/b90yozqFIFRlVNuSpigwUisfdpay4R4dVnIvT0lBlyqI9XxAoGAAYOv
+        hpBh81F2SZS1z5yAx93PTXRfeurdN9/vXxAg2gS0w3WMs3qBXXcAyt1j4ttinlbX
+        HRVAFETW41O3A1/Wn8TupeLcl7X/Vg2g8tv7JWmiRg384MBjUkPbDAgZk7S/ZlPR
+        XHxOzyxS8FaxBkZpiTrp7wRVShtWu8DTZOBgPkcCgYAdSHCSa/hRG0NmfWXZxGbd
+        Eaxa4I+hRhqXP+HnBr1/1Ajc846jC7zqZY4pf0eRfNkIdbmtEJL4fIgAOByE98xn
+        O66d4Kvzrf5he5Bm/St2djutVORAIz3wqvu+PXCBrcg9JrwpcqOT1sgSUAI5bDgD
+        lU3kR1r1zQvuF3OysxYQ3g==
+        -----END PRIVATE KEY-----
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    annotations:
+      description: Keeps track of changes in the application image
+    name: ${NAME}-frontend
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    annotations:
+      description: Defines how to build the application
+    name: ${NAME}-frontend
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: ${NAME}-frontend:latest
+    source:
+      contextDir: ${CONTEXT_DIR}
+      git:
+        ref: ${SOURCE_REPOSITORY_REF}
+        uri: ${SOURCE_REPOSITORY_URL}
+      type: Git
+    strategy:
+      dockerStrategy:
+        env:
+        - name: GIT_SSL_NO_VERIFY
+          value: "true"
+        from:
+          kind: ImageStreamTag
+          name: webserver31-tomcat7-openshift:latest
+      type: Source
+    triggers:
+    - type: ImageChange
+    - type: ConfigChange
+    - github:
+        secret: ${GITHUB_WEBHOOK_SECRET}
+      type: GitHub
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    annotations:
+      description: Defines how to deploy the application server
+    name: ${NAME}-frontend
+  spec:
+    replicas: 1
+    selector:
+      name: ${NAME}-frontend
+    strategy:
+      type: Rolling
+    template:
+      metadata:
+        labels:
+          name: ${NAME}-frontend
+        name: ${NAME}-frontend
+      spec:
+        containers:
+        - env:
+          - name: SERVICE_NAME
+            value: ${SERVICE_NAME}-frontend
+          - name: NO_ALSC
+            value: 'true'
+          - name: recommender_enabled
+            value: 'false'
+          - name: postgres_host
+            value: backend
+          - name: database_host
+            value: backend
+          - name: database_username
+            value: shah
+          - name: database_password
+            value: shah123
+          - name: cbsl_proxy_disable
+            value: 'true'
+          - name: JWS_HTTPS_CERTIFICATE_DIR
+            value: ${CERT_KEY_LOCATION}
+          - name: JWS_HTTPS_CERTIFICATE
+            value: ${CERT_NAME}
+          - name: JWS_HTTPS_CERTIFICATE_KEY
+            value: ${KEY_NAME}
+          - name: CATALINA_OPTS
+            value: >-
+              -Djavax.net.ssl.keyStore=/usr/lib/jvm/java-1.8.0/jre/lib/security/pgkey.jks
+              -Djavax.net.ssl.keyStorePassword=changeit
+              -Djavax.net.ssl.trustStore=/usr/lib/jvm/java-1.8.0/jre/lib/security/pgkey.jks
+              -Djavax.net.ssl.trustStorePassword=changeit
+              -Djavax.net.debug=ssl
+          - name: connection_url
+            value: >-
+              jdbc:postgresql://backend/testing?ssl=true&sslfactory=org.postgresql.ssl.jdbc4.LibPQFactory&sslmode=require&sslcert=/tmp/CERTS/client-cert.pem&sslkey=/tmp/CERTS/client-key.pk8&sslrootcert=/tmp/CERTS/bundle.pem&user=shah&password=shah123
+          image: ${NAME}-frontend
+          imagePullPolicy: IfNotPresent
+          name: frontend
+          ports:
+          - containerPort: 8080
+            name: web1
+          - containerPort: 8443
+            name: web2
+          - containerPort: 8778
+            name: web3
+          resources:
+            limits:
+              memory: ${MEMORY_LIMIT}
+          volumeMounts:
+          - mountPath: /etc/jws-secret-volume
+            name: frontend-certs
+        volumes:
+        - name: frontend-certs
+          secret:
+            defaultMode: 0777
+            secretName: frontend-certs
+    triggers:
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - frontend
+        from:
+          kind: ImageStreamTag
+          name: ${NAME}-frontend:latest
+        lastTriggeredImage: ""
+      type: ImageChange
+    - type: ConfigChange  
+parameters:
+- description: The name assigned to all of the frontend objects defined in this template.
+  displayName: Name
+  name: NAME
+  value: spring
+- description: Maximum amount of memory the container can use.
+  displayName: Memory Limit
+  name: MEMORY_LIMIT
+  value: 1024Mi
+- description: The exposed hostname that will route to the Application service, if
+    left blank a value will be defaulted.
+  displayName: Application Hostname
+  name: APPLICATION_DOMAIN
+- description: The URL of the repository with your application source code.
+  displayName: Git Repository URL
+  name: SOURCE_REPOSITORY_URL
+  value: https://github.com/pittar/frontend-backend-ssl.git
+- description: Set this to a branch name, tag or other ref of your repository if you
+    are not using the default branch.
+  displayName: Git Reference
+  name: SOURCE_REPOSITORY_REF
+- description: Set this to the relative path to your project if it is not in the root
+    of your repository.
+  displayName: Context Directory
+  name: CONTEXT_DIR
+  value: spring
+- description: A secret string used to configure the GitHub webhook.
+  displayName: GitHub Webhook Secret
+  from: '[a-zA-Z0-9]{40}'
+  generate: expression
+  name: GITHUB_WEBHOOK_SECRET
+- description: Frontend cert/key location.
+  displayName: Cert/Key location
+  name: CERT_KEY_LOCATION
+  value: /etc/jws-secret-volume
+- description: Frontend certificate name.
+  displayName: Certificat name.
+  name: CERT_NAME
+  value: frontend.crt
+- description: Key name.
+  displayName: Key name.
+  name: KEY_NAME
+  value: frontend.key
